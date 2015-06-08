@@ -4,22 +4,34 @@ require "mechanize"
 set :server, 'webrick'
 
 class Storm < Sinatra::Base
-  def fetch_latest_weather
-    agent = Mechanize.new
+
+  get '/' do
+    fetch_latest_weather
+    erb :index
+  end
+
+  private
+
+  def agent
+    @agent ||= Mechanize.new
+    @agent.pluggable_parser.default = Mechanize::Download
+    @agent
+  end
+
+  def latest_weather_url
     last_image_path = agent
       .get("http://cambodiameteo.com/slideshow?menu=117")
       .search(".//script")
       .last
       .to_s
-      .scan(/theImagesComplete\[29\]\s=\s\"(.*)\"/).first.first
-    last_image_url = "http://cambodiameteo.com/#{last_image_path}"
-    agent.pluggable_parser.default = Mechanize::Download
-    agent.get(last_image_url).save!("public/latest_weather.jpg")
+      .scan(/theImagesComplete\[29\]\s=\s\"(.*)\"/)
+      .first
+      .first
+    "http://cambodiameteo.com/#{last_image_path}"
   end
 
-  get '/' do
-    fetch_latest_weather
-    erb :index
+  def fetch_latest_weather
+    agent.get(latest_weather_url).save!("public/latest_weather.jpg")
   end
 
 end
